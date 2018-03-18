@@ -28,12 +28,57 @@ var filterAvailablePrograms = function(programs) {
     }, []);
 }
 
+var zeropad = function(str, size) {
+    var s = str;
+    while (s.length < size) s = "0" + s;
+    return s;
+}
+
+var parseDuration = function(dur) {//PT1H58M45S
+    if (!dur)
+        return "";
+    var d = dur.substr(2);
+    var hi = d.indexOf("H");
+    var mi = d.indexOf("M");
+    var si = d.indexOf("S");
+    var h = d.substr(0, hi);
+    var m = zeropad(d.substring(hi+1, mi), 2);
+    var s = zeropad(d.substr(mi+1, si >= 0 ? si-mi-1 : si).substr(0, 2), 2);
+    return h ? ""+h+":"+m+":"+s : ""+m+":"+s;
+}
+
+var parseTime = function(str) {//2014-01-23T21:00:07+02:00
+    var s = Qt.formatDateTime(new Date(str), "ddd dd.MM hh:mm")
+    console.log(str+"->"+s)
+    return s;
+}
+
+function arraySearch(arr, key, sub, val) {
+    for (var i = 0; i < arr.count; i++) {
+        if (sub && arr.get(i)[sub] && arr.get(i)[sub][key] === val)
+            return i;
+        if (arr.get(i)[key] === val)
+            return i;
+    }
+//    console.log("startTime not found")
+    return -1;
+}
+
+var findPubTime = function(arr) {
+    if (!arr)
+        return "";
+    var i = arraySearch(arr, "temporalStatus", "", "currently");
+    return i >= 0 ? parseTime(arr.get(i)["startTime"]) : "";
+}
+
 var mapPrograms = function(programs) {
     return programs.map(function(program) {
         return {
             id: program.id,
             title: program.title && program.title.fi,
             description: program.description && program.description.fi,
+            duration: parseDuration(program.duration),
+            time: program.publicationEvent && findPubTime(program.publicationEvent),
             mediaId: program.publicationEvent && program.publicationEvent.media && program.publicationEvent.media.id,
             image: program.image,
             seasonNumber: program.partOfSeason && program.partOfSeason.seasonNumber
@@ -58,7 +103,7 @@ function getProgramById(id) {
 }
 
 function getProgramsByCategoryId(categoryId, limit, offset) {
-    var url = apiUrl + programsUrl + '&category=' + categoryId + '&availability=ondemand&mediaobject=video';
+    var url = apiUrl + programsUrl + '&category=' + categoryId + '&availability=ondemand&mediaobject=video&offset='+offset+'&limit='+limit;
     return HTTP.get(url)
         .then(function(response) {
             return filterAvailablePrograms(response.data);

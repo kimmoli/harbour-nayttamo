@@ -30,11 +30,10 @@ Page {
         delegate: BackgroundItem {
             id: delegate
 
-            Column {
+            Label {
+                anchors.verticalCenter: parent.verticalCenter
                 x: Theme.horizontalPageMargin
-                Label {
-                    text: modelData.title
-                }
+                text: modelData.title
             }
             onClicked: pageStack.push(Qt.resolvedUrl("ProgramsPage.qml"), {
                                           "category": modelData
